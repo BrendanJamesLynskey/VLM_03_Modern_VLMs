@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLM 03 — Modern VLMs: Llama 3.2, Qwen2-VL, InternVL2, Pixtral, Gemini & Claude</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #0d1117;
+            --bg-code: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #76B900;
+            --accent-dim: #76B90044;
+            --accent-glow: #76B90033;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .hero > * { position: relative; z-index: 1; }
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+        .hero h1 .accent { color: var(--accent); }
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin-bottom: 2rem;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .pipeline-arrow { color: var(--accent); font-size: 0.9rem; font-weight: 700; }
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .slide p { margin-bottom: 1rem; color: var(--text-secondary); }
+        .slide p strong { color: var(--text-primary); }
+        .slide ul, .slide ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
+        .slide li { margin-bottom: 0.4rem; }
+        .slide li strong { color: var(--text-primary); }
+        .slide code {
+            font-family: var(--font-mono);
+            font-size: 0.88em;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 0.05rem 0.35rem;
+            border-radius: 3px;
+            color: #c9d1d9;
+        }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .code-block pre { margin: 0; padding: 1rem; overflow-x: auto; }
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        .kw { color: #ff7b72; }
+        .fn { color: #d2a8ff; }
+        .str { color: #a5d6ff; }
+        .cm { color: #8b949e; font-style: italic; }
+        .num { color: #79c0ff; }
+        .type { color: #ffa657; }
+        .dir { color: #ff7b72; }
+        .mac { color: #ffa657; }
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background: rgba(13, 17, 23, 0.5); }
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .diagram-box.accent { border-color: var(--accent); color: var(--accent); background: rgba(118, 185, 0, 0.08); }
+        .diagram-box.dim { color: var(--text-secondary); border-color: var(--border); }
+        .diagram-arrow { color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-vertical .diagram-arrow { font-size: 1.1rem; }
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .hierarchy-level { display: flex; align-items: center; gap: 0.75rem; }
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+        .hierarchy-items { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .hierarchy-item.accent { border-color: var(--accent); color: var(--accent); background: rgba(118, 185, 0, 0.08); }
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .diagram-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .diagram-panel.accent-border { border-left: 3px solid var(--accent); }
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .diagram-panel p, .diagram-panel ul { font-size: 0.85rem; }
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .callout p { margin-bottom: 0; }
+        .callout p + p { margin-top: 0.5rem; }
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+        .contents-list { list-style: none; padding-left: 0; counter-reset: contents; }
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .contents-list li:last-child { border-bottom: none; }
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+        .contents-list a { color: var(--text-primary); text-decoration: none; transition: color 0.2s; }
+        .contents-list a:hover { color: var(--accent); }
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas, .canvas-wrap svg { display: block; margin: 0 auto; max-width: 100%; }
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
+        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+        @media (max-width: 640px) {
+            .slide { padding: 3rem 1rem; min-height: auto; }
+            .slide-number { font-size: 3rem; top: 1.5rem; right: 1rem; }
+            .slide h2 { font-size: 1.5rem; }
+            .diagram-grid.cols-2, .diagram-grid.cols-3 { grid-template-columns: 1fr; }
+            .pipeline { gap: 0.15rem; }
+            .pipeline-step { font-size: 0.6rem; padding: 0.2rem 0.4rem; }
+            .hero h1 { font-size: 1.8rem; }
+            table { font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+<header class="hero">
+    <div class="series-label">Vision-Language Models Series &mdash; Presentation 03</div>
+    <h1>Modern <span class="accent">VLMs</span> &mdash; Llama 3.2, Qwen2-VL, InternVL, Gemini &amp; Claude</h1>
+    <p class="subtitle">Architecture patterns, projection connectors, native multimodal vs adapter, AnyRes tiling, token budget, alignment training, multi-image &amp; video extensions, and evaluation on MMMU, MathVista, ChartQA &amp; OCRBench.</p>
+
+    <div class="tags">
+        <span class="tag">LLaVA</span>
+        <span class="tag">Llama 3.2 V</span>
+        <span class="tag">Qwen2-VL</span>
+        <span class="tag">InternVL2</span>
+        <span class="tag">Pixtral</span>
+        <span class="tag">Gemini</span>
+        <span class="tag">MMMU</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">Image Encoder</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Projection</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">LLM Context</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Alignment</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Instruct</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Eval</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We&rsquo;ll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">The VLM Landscape &mdash; Llama 3.2 V, Qwen2-VL, InternVL2, Pixtral, Gemini, Claude</a></li>
+        <li><a href="#slide-02">Three Architectures &mdash; Q-Former, Perceiver Resampler, Simple Projection</a></li>
+        <li><a href="#slide-03">Native Multimodal vs Adapter &mdash; Gemini 1.5 vs Llama 3.2</a></li>
+        <li><a href="#slide-04">Image Preprocessing &mdash; Resolution, Tiling, AnyRes</a></li>
+        <li><a href="#slide-05">Token Budget &mdash; How Many Tokens Per Image</a></li>
+        <li><a href="#slide-06">Vision-Language Alignment Training</a></li>
+        <li><a href="#slide-07">Multi-Image &amp; Video Extensions</a></li>
+        <li><a href="#slide-08">Eval &mdash; MMMU, MathVista, ChartQA, OCRBench</a></li>
+        <li><a href="#slide-09">What to Take Away</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>The VLM Landscape &mdash; Llama 3.2 V, Qwen2-VL, InternVL2, Pixtral, Gemini, Claude</h2>
+    <p>As of 2025 there are broadly three tiers of VLM: <strong>API-only closed models</strong> (Gemini 1.5 Pro, GPT-4o, Claude 3.5 Sonnet), <strong>open-weight models with proprietary data</strong> (Pixtral-Large, Qwen2-VL-72B, InternVL2-76B), and <strong>fully open models</strong> (LLaVA-NeXT, MiniCPV 2.6, PaliGemma). The landscape changes monthly; what matters is understanding the architectural patterns.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Model</th><th>LLM backbone</th><th>Image encoder</th><th>Connector</th><th>Max res / tiles</th><th>MMMU</th></tr></thead>
+            <tbody>
+                <tr><td>LLaVA-1.5-13B</td><td>Vicuna-13B</td><td>CLIP ViT-L/14@336</td><td>2-layer MLP</td><td>336px / 1</td><td>36.3%</td></tr>
+                <tr><td>Llama 3.2 Vision 90B</td><td>Llama 3.1 90B</td><td>ViT (cross-attn)</td><td>Cross-attention layers</td><td>1120px / 4</td><td>60.3%</td></tr>
+                <tr><td>Qwen2-VL-72B</td><td>Qwen2-72B</td><td>ViT 675M (2D-RoPE)</td><td>MLP (no fixed token cnt)</td><td>Dynamic / unlimited</td><td>64.5%</td></tr>
+                <tr><td>InternVL2-76B</td><td>InternLM2.5-20B&times;2</td><td>InternViT-6B</td><td>MLP + pixel-shuffle</td><td>448px / 40 tiles</td><td>65.4%</td></tr>
+                <tr><td>Pixtral-Large-124B</td><td>Mistral Large 2</td><td>Pixtral-ViT-400M</td><td>Linear proj (RoPE-2D)</td><td>1024px / variable</td><td>72.0%</td></tr>
+                <tr><td>Gemini 1.5 Pro</td><td>Native multimodal</td><td>Native (no sep. enc.)</td><td>Native</td><td>Variable</td><td>62.2%</td></tr>
+                <tr><td>Claude 3.5 Sonnet</td><td>Native multimodal</td><td>Native</td><td>Native</td><td>Up to ~8k px</td><td>68.3%</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Why InternVL2 leads open-weight models</div>
+        <p>InternVL2-76B uses InternViT-6B, a 6-billion-parameter image encoder trained with a SigLIP-style contrastive objective and then fine-tuned jointly with the LLM. Most open VLMs use a frozen CLIP ViT-L (307M) with a tiny MLP. The 20&times; larger encoder, combined with multi-tile input and large-scale instruction data (InternLM2.5 training corpus), pushes MMMU to 65.4%.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>Three Architectures &mdash; Q-Former, Perceiver Resampler, Simple Projection</h2>
+    <p>The architectural decision that most shapes a VLM&rsquo;s capabilities is how image tokens are projected into the LLM&rsquo;s token space. Three patterns dominate:</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel accent-border">
+            <h4>Q-Former (BLIP-2 / InstructBLIP)</h4>
+            <p>A Transformer with <strong>N learned queries</strong> (default: 32) that cross-attends to the frozen image encoder&rsquo;s output. Only the 32 query tokens are passed to the LLM.</p>
+            <ul>
+                <li><strong>Pro:</strong> minimal LLM token cost regardless of image resolution</li>
+                <li><strong>Con:</strong> 32 tokens cannot carry fine-grained text (OCR fails badly)</li>
+                <li><strong>Con:</strong> introduces an extra bottleneck module to train</li>
+                <li>Used in: BLIP-2, InstructBLIP, MiniGPT-4</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Perceiver Resampler (Flamingo / Otter)</h4>
+            <p>A stack of transformer layers where <strong>M learned latents</strong> (64&ndash;256) cross-attend to all image patch tokens. Inserted <em>between</em> frozen LLM layers.</p>
+            <ul>
+                <li><strong>Pro:</strong> interleaved vision-language (arbitrary image-text sequences)</li>
+                <li><strong>Pro:</strong> more latents than Q-Former &rarr; better detail retention</li>
+                <li><strong>Con:</strong> modifies the LLM forward pass; harder to distrib. across GPUs</li>
+                <li>Used in: Flamingo, OpenFlamingo, Idefics, Otter</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Simple Linear / MLP Projection (LLaVA family)</h4>
+            <p>A 1&ndash;2-layer MLP maps each patch token directly to the LLM&rsquo;s embedding dimension. All patch tokens (256&ndash;2048 depending on tile count) are prepended to the text sequence.</p>
+            <ul>
+                <li><strong>Pro:</strong> simplest; every patch token preserved; strongest fine detail</li>
+                <li><strong>Pro:</strong> fast to train; easy to scale</li>
+                <li><strong>Con:</strong> LLM context blown up by hundreds/thousands of tokens</li>
+                <li>Used in: LLaVA-1.5, LLaVA-NeXT, PaliGemma, InternVL2, Pixtral</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Industry convergence in 2024&ndash;2025</div>
+        <p>The field largely abandoned Q-Former and Perceiver Resampler for new models after LLaVA-1.5 showed that a simple 2-layer MLP with a larger, better-trained image encoder and AnyRes tiling outperforms both on OCR, charts, and document tasks. The LLM context cost of 256&ndash;1024 tokens per image is considered acceptable given modern 128k+ context windows.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>Native Multimodal vs Adapter &mdash; Gemini 1.5 vs Llama 3.2</h2>
+    <p>The architectures above are all <em>adapter</em> VLMs: a separately-trained LLM gets a vision encoder bolted on. <strong>Native multimodal</strong> models train from scratch with both modalities interleaved, so the LLM weights themselves encode joint image-text understanding rather than learning it post-hoc.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Adapter VLM &mdash; Llama 3.2 Vision (Meta, 2024)</h4>
+            <p>Llama 3.1 text LLM pre-trained on 15T tokens. Vision added via <strong>cross-attention layers</strong> inserted at every 4th LLM layer. Image tokens never enter the self-attention stack directly; they are injected via cross-attention.</p>
+            <ul>
+                <li>Image encoder: ViT-H (630M), trained with CLIP then fine-tuned</li>
+                <li>Cross-attention keys/values come from image encoder; queries from LLM</li>
+                <li>Only cross-attention + image encoder weights updated in Stage 1; full model in Stage 2</li>
+                <li>Sizes: 11B and 90B. Llama-3.2-Vision-90B: MMMU 60.3%, DocVQA 91.3%</li>
+                <li>Advantage: preserves strong text capabilities; image encoding is isolatable</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Native multimodal &mdash; Gemini 1.5 (Google, 2024)</h4>
+            <p>Trained end-to-end on interleaved image, video, audio, and text from the beginning. No separate image encoder or projection step. The backbone itself (a Mixture-of-Experts architecture) handles all modalities via a shared token sequence.</p>
+            <ul>
+                <li>Image/video tokenised at training time via a learned tokeniser (not ViT patches explicitly)</li>
+                <li>1M token context window: can process entire codebases, long videos, PDFs</li>
+                <li>Gemini 1.5 Pro: MMMU 62.2%, Video-MME 75.0%, long-context bench near-perfect</li>
+                <li>Advantage: no modality boundary artefacts; arbitrary interleaving; better long-context fusion</li>
+                <li>Disadvantage: no open weights; extremely expensive to train</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Claude 3.5 architecture (inferred)</div>
+        <p>Anthropic has not published detailed architecture papers for Claude 3.x. From published benchmarks and the Constitutional AI + RLHF training regime, it is likely native multimodal in the same sense as Gemini: trained with interleaved vision-text from early stages. Claude 3.5 Sonnet achieves MMMU 68.3% and strong performance on charts and screenshots, suggesting high-resolution tile-based processing similar to Gemini&rsquo;s approach.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Image Preprocessing &mdash; Resolution, Tiling, AnyRes</h2>
+    <p>CLIP was trained at 224px. Most high-resolution text and document understanding requires at least 448&ndash;1024px. <strong>AnyRes</strong> (introduced in LLaVA-HD / LLaVA-NeXT) solves this by tiling the image into crops that fit the encoder&rsquo;s native resolution, encoding each tile independently, and concatenating the tokens alongside a low-resolution global thumbnail.</p>
+
+    <div class="canvas-wrap">
+        <svg viewBox="0 0 720 260" width="720" height="260" xmlns="http://www.w3.org/2000/svg">
+            <style>
+                .tb { fill: #161b22; stroke: #30363d; }
+                .tb.a { stroke: #76B900; fill: rgba(118,185,0,0.08); }
+                .tb.t { stroke: #ffa657; fill: rgba(255,166,87,0.08); }
+                .tl { fill: #e6edf3; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; }
+                .ts { fill: #8b949e; font-family: 'JetBrains Mono', monospace; font-size: 9px; }
+                .ta { stroke: #76B900; stroke-width: 1.5; fill: none; marker-end: url(#manyres); }
+                .tt { fill: #76B900; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 11px; }
+            </style>
+            <defs>
+                <marker id="manyres" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#76B900"/>
+                </marker>
+            </defs>
+            <text x="10" y="18" class="tt">AnyRes: 1024&times;1024 input &rarr; 2&times;2 tile grid + thumbnail &rarr; 5 encodings</text>
+
+            <rect x="10"  y="35" width="120" height="120" rx="4" class="tb"/>
+            <text x="15"  y="55" class="tl">Input</text>
+            <text x="15"  y="70" class="ts">1024&times;1024 px</text>
+            <text x="15"  y="84" class="ts">aspect ratio</text>
+            <text x="15"  y="98" class="ts">preserved</text>
+
+            <path d="M 130 95 L 170 95" class="ta"/>
+
+            <rect x="170" y="35" width="55" height="55" rx="3" class="tb a"/>
+            <text x="175" y="53" class="ts">Tile 1</text>
+            <text x="175" y="67" class="ts">512&times;512</text>
+            <text x="175" y="79" class="ts">&rarr;448px</text>
+
+            <rect x="230" y="35" width="55" height="55" rx="3" class="tb a"/>
+            <text x="235" y="53" class="ts">Tile 2</text>
+            <text x="235" y="67" class="ts">512&times;512</text>
+            <text x="235" y="79" class="ts">&rarr;448px</text>
+
+            <rect x="170" y="95" width="55" height="55" rx="3" class="tb a"/>
+            <text x="175" y="113" class="ts">Tile 3</text>
+            <text x="175" y="127" class="ts">512&times;512</text>
+            <text x="175" y="141" class="ts">&rarr;448px</text>
+
+            <rect x="230" y="95" width="55" height="55" rx="3" class="tb a"/>
+            <text x="235" y="113" class="ts">Tile 4</text>
+            <text x="235" y="127" class="ts">512&times;512</text>
+            <text x="235" y="141" class="ts">&rarr;448px</text>
+
+            <rect x="210" y="165" width="40" height="40" rx="3" class="tb t"/>
+            <text x="214" y="183" class="ts">Global</text>
+            <text x="214" y="195" class="ts">224px</text>
+
+            <path d="M 290 95 L 330 95" class="ta"/>
+
+            <rect x="330" y="35" width="120" height="65" rx="4" class="tb a"/>
+            <text x="335" y="55" class="tl">ViT Encode</text>
+            <text x="335" y="70" class="ts">5 passes through</text>
+            <text x="335" y="83" class="ts">CLIP ViT-L/14@448</text>
+            <text x="335" y="96" class="ts">1024 tokens each</text>
+
+            <path d="M 450 68 L 490 68" class="ta"/>
+
+            <rect x="490" y="35" width="140" height="145" rx="4" class="tb"/>
+            <text x="495" y="55" class="tl">Token sequence (LLM)</text>
+            <text x="495" y="70" class="ts">tile_1: 1024 tokens</text>
+            <text x="495" y="83" class="ts">tile_2: 1024 tokens</text>
+            <text x="495" y="96" class="ts">tile_3: 1024 tokens</text>
+            <text x="495" y="109" class="ts">tile_4: 1024 tokens</text>
+            <text x="495" y="122" class="ts">global: 256 tokens</text>
+            <text x="495" y="138" class="ts">&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</text>
+            <text x="495" y="153" class="ts">total: 4,352 tokens</text>
+            <text x="495" y="166" class="ts">(InternVL2 pixel-shuffle</text>
+            <text x="495" y="179" class="ts">&rarr; &frac14; = 1,088 tokens)</text>
+
+            <text x="10" y="240" class="ts">Grid selection: model picks the tiling (1&times;1, 1&times;2, 2&times;2, 2&times;3, ...) that best matches the image aspect ratio with fewest tiles</text>
+        </svg>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Aspect-ratio-aware tiling (Qwen2-VL)</div>
+        <p>Qwen2-VL takes this further with a <strong>dynamic resolution</strong> approach: it discretises the image into 2D patch tokens with 2D-RoPE positional encoding, treating any resolution as valid input without a fixed tile grid. The number of visual tokens per image varies from 256 to ~16,384 depending on input resolution. The LLM receives interleaved <code>&lt;|vision_start|&gt;</code> and <code>&lt;|vision_end|&gt;</code> tokens wrapping the visual tokens.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>Token Budget &mdash; How Many Tokens Per Image</h2>
+    <p>Visual tokens are the single biggest driver of inference cost in VLMs. Understanding the token budget lets you reason about latency, context length limits, and what fidelity you actually need for a given task.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Model</th><th>Tokens/image (typical)</th><th>Max tokens/image</th><th>Compression method</th></tr></thead>
+            <tbody>
+                <tr><td>BLIP-2 / InstructBLIP</td><td>32</td><td>32</td><td>Q-Former (32 learned queries)</td></tr>
+                <tr><td>LLaVA-1.5 (336px)</td><td>576</td><td>576</td><td>None (all patch tokens)</td></tr>
+                <tr><td>Llama 3.2 Vision 11B</td><td>1680</td><td>6720</td><td>4 tiles &times; 420 + global</td></tr>
+                <tr><td>InternVL2-76B (1 tile)</td><td>256</td><td>10,240</td><td>Pixel-shuffle 2&times; (1024&rarr;256 per tile)</td></tr>
+                <tr><td>Qwen2-VL</td><td>256&ndash;16,384</td><td>~16,384</td><td>None (native res, 2D-RoPE)</td></tr>
+                <tr><td>Pixtral-12B</td><td>1024 per tile</td><td>~16,384</td><td>None (linear proj)</td></tr>
+                <tr><td>Gemini 1.5 Flash</td><td>258 (low res)</td><td>3,072</td><td>Internal tokeniser</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>The OCR accuracy vs token budget trade-off</h3>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Low token budget (&le; 256)</h4>
+            <p>Fast, cheap, suitable for: scene classification, coarse object detection, general Q&amp;A about natural images. Fails at: reading small text, chart axis labels, table cell contents, handwriting, code screenshots.</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>High token budget (&ge; 1024)</h4>
+            <p>Accurate OCR, detailed chart reading, full-page document parsing. Necessary for: DocVQA (&gt; 90% acc requires ~1024+ tokens), TableVQA, infographic Q&amp;A. Cost: 4&times; longer LLM forward pass, 4&times; KV cache memory.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Token compression strategies that work</div>
+        <p><strong>Pixel shuffle</strong> (InternVL, MiniCPM): spatially group 2&times;2 adjacent patch tokens into one token of 4&times; the channel depth. Information-theoretically lossless for spatial patterns; preserves layout better than attention pooling. <strong>2D average pooling</strong>: simple, fast, but blurs fine details. <strong>Neither should be used for OCR tasks</strong> &mdash; at single-tile 448px resolution you need all 1024 raw patch tokens to reliably read 8pt font.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>Vision-Language Alignment Training</h2>
+    <p>Most adapter VLMs are trained in two or three stages. Getting the stage boundaries wrong (e.g. fine-tuning the image encoder before the projection has converged) is one of the most common causes of poor downstream performance.</p>
+
+    <div class="diagram-vertical">
+        <div class="diagram-box accent">Stage 1 &mdash; Projection Alignment</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Freeze image encoder + LLM. Train only the MLP projection. Data: 600K&ndash;1.2M image-caption pairs (LAION, CC3M, ShareGPT4V). Loss: next-token prediction on caption. Goal: projection learns to map visual tokens into LLM&rsquo;s vocabulary space. ~1 epoch.</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box accent">Stage 2 &mdash; Visual Instruction Tuning</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Unfreeze projection (and optionally LLM). Train on instruction-following data: LLaVA-Instruct-150K, ShareGPT4V-100K, VQAv2, GQA, TextVQA, ChartQA, DocVQA, OCRBench, RefCOCO, VIST, MathVista, MMMU training split. Mixed batch. SFT loss (response tokens only). 1&ndash;3 epochs.</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box accent">Stage 3 (optional) &mdash; Preference Optimisation</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">RLHF / DPO on preference pairs for visual hallucination reduction. Datasets: LLaVA-RLHF, POVID, SILKIE. Target: reduce &ldquo;I see a cat&rdquo; when there is no cat (object hallucination, measured by CHAIR score).</div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">LLaVA-1.5 vs InternVL2 data scale</div>
+        <p>LLaVA-1.5 (2023) used 665K alignment + 665K instruction data. InternVL2 (2024) uses &gt;20M alignment samples and &gt;4M instruction samples. The 30&times; data scale &mdash; not the 20&times; larger image encoder &mdash; is arguably the bigger factor in the benchmark gap. Data sourcing (ShareGPT4V, InternData, MMInstruct) matters as much as architecture at this stage of the field.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Multi-Image &amp; Video Extensions</h2>
+    <p>Single-image VLMs generalise poorly to video and multi-image tasks. The three primary approaches to handle temporal and multi-frame inputs are: <strong>frame sampling</strong>, <strong>memory-efficient encoding with recurrence</strong>, and <strong>native video training</strong>.</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel accent-border">
+            <h4>Frame sampling (simple)</h4>
+            <p>Uniformly sample N frames from the video. Encode each frame independently with the image encoder. Concatenate all visual tokens. Pass the full sequence (visual + text) to the LLM.</p>
+            <ul>
+                <li>Used by: LLaVA-NeXT-Video, most early video VLMs</li>
+                <li>N=8&ndash;32 frames is typical for 1&ndash;5 min clips</li>
+                <li>Context blowup: 32 &times; 256 = 8,192 visual tokens</li>
+                <li>Temporal ordering only via position in sequence</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Temporal compression (Video-LLaVA)</h4>
+            <p>Encode each frame. Apply a temporal Q-Former or pooling across the time axis to compress N frames to M &lt; N summary tokens. Preserves motion information while constraining token count.</p>
+            <ul>
+                <li>Video-LLaVA: 256 tokens per video regardless of length</li>
+                <li>mPLUG-Owl3: 64 video tokens via temporal mean pooling</li>
+                <li>Risk: temporal details (e.g. frame order, fast motion) may be lost</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Native video training (Qwen2-VL / Gemini)</h4>
+            <p>3D position encoding (frame index + 2D spatial) allows the model to reason natively about frame differences. Trained with interleaved video-text data including dense temporal captions.</p>
+            <ul>
+                <li>Qwen2-VL: 3D-RoPE; processes up to 20-min video</li>
+                <li>Gemini 1.5 Pro: 1M context = ~1 hour of video @ 1fps</li>
+                <li>Gemini 1.5: Video-MME long-form 64.0% (best open score: 67.3%)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Multi-image interleaving (Idefics2 / LLaVA-Interleave)</div>
+        <p>Supporting multiple images in one context requires: (1) each image to be enclosed in image tokens that the text tokeniser understands (<code>&lt;image_1&gt;</code> sentinel tokens), (2) the LLM to have cross-image attention &mdash; or at minimum, positional distinctness between image token groups. LLaVA-Interleave achieves this by prepending per-image tokens before each image sequence in the prompt. Flamingo&rsquo;s Perceiver Resampler naturally supports this via interleaved cross-attention insertion.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>Eval &mdash; MMMU, MathVista, ChartQA, OCRBench</h2>
+    <p>VLM evaluation benchmarks test very different capability facets. A model that tops MMMU may be mediocre at OCRBench, so it&rsquo;s essential to pick benchmarks appropriate to your task:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Benchmark</th><th>Task</th><th>Scale</th><th>What it tests</th><th>SOTA (2025 Q1)</th></tr></thead>
+            <tbody>
+                <tr><td>MMMU</td><td>Multi-discipline MCQ</td><td>11,550 Qs, 30 subjects</td><td>Expert-level domain knowledge (science, art, medicine) from college textbooks; images include diagrams, charts, photos</td><td>GPT-4o 69.1%; Claude 3.5 Sonnet 68.3%</td></tr>
+                <tr><td>MathVista</td><td>Visual math reasoning</td><td>6,141 Qs</td><td>Geometry, function plots, statistics &mdash; requires both vision and multi-step reasoning</td><td>GPT-4V 58.1%; Claude 3.5 Sonnet 67.7%</td></tr>
+                <tr><td>ChartQA</td><td>Chart Q&amp;A</td><td>9,866 Qs</td><td>Reads bar/line/pie charts; relaxed numerical accuracy (&plusmn;5%)</td><td>Gemini 1.5 Pro 87.2%; InternVL2-76B 88.4%</td></tr>
+                <tr><td>OCRBench</td><td>OCR &amp; text understanding</td><td>1,000 Qs</td><td>Scene text, handwriting, formula recognition, document structure &mdash; exact string match</td><td>InternVL2-76B 825/1000; Qwen2-VL-72B 866/1000</td></tr>
+                <tr><td>DocVQA</td><td>Document Q&amp;A</td><td>5,349 Qs</td><td>Reads typed/printed documents; ANLS metric (handles partial matches)</td><td>InternVL2-76B 94.1%; Qwen2-VL-72B 96.5%</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Benchmark saturation &amp; the leaderboard problem</div>
+        <p>MMMU test-set contamination is a real concern: many training datasets now include MMMU-style question-answer pairs derived from college textbooks. OpenCompass and the MMMU team maintain a <strong>MMMU-Pro</strong> variant with process-level reasoning questions (harder; less contamination-prone). Similarly, ChartQA&rsquo;s training split is small enough that fine-tuning on it directly inflates scores without generalising to real-world charts. Always cross-validate with a held-out private evaluation set if deploying on specialised chart data.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>What to Take Away</h2>
+    <ul>
+        <li><strong>Three connector architectures dominate.</strong> Q-Former (32 tokens, BLIP-2) is fastest but worst at OCR. Perceiver Resampler (64&ndash;256 tokens, Flamingo) handles interleaved multi-image. Simple MLP (all patch tokens, LLaVA family) gives the best detail &mdash; and has largely won in 2024&ndash;2025.</li>
+        <li><strong>Native multimodal models</strong> (Gemini, Claude) skip the image encoder / projection design entirely. They trade explainability and modularity for long-context multimodal fusion &mdash; and for tasks requiring &gt;4 images or long video, they have a fundamental advantage.</li>
+        <li><strong>AnyRes tiling</strong> is the standard technique for high-resolution VLMs. Select the tile grid that minimises padding for the input aspect ratio. Qwen2-VL&rsquo;s 2D-RoPE approach is the most principled alternative.</li>
+        <li><strong>Token budget is the key engineering trade-off.</strong> 256 tokens/image = fast + cheap + OCR-blind. 1024+ tokens/image = accurate OCR + expensive. Pixel-shuffle 2&times; is the best-known compression that preserves layout.</li>
+        <li><strong>InternVL2-76B and Qwen2-VL-72B lead open-weight models</strong> on most benchmarks. On OCRBench specifically, Qwen2-VL&rsquo;s native-resolution encoding gives it a decisive edge.</li>
+        <li><strong>Evaluation is noisy.</strong> Always cross-reference MMMU, a chart benchmark, an OCR benchmark, and a real-world task. Single-benchmark leaderboard rankings are misleading.</li>
+    </ul>
+
+    <div class="callout">
+        <div class="callout-label">Where to next</div>
+        <p>Deck 04 specialises on document AI: Donut (OCR-free end-to-end parsing), ColPali (vision-based PDF retrieval), LayoutLM and UDOP (layout-aware models), and production pipeline patterns for PDF, table, and chart processing.</p>
+    </div>
+</section>
+
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Vision_Language">Vision-Language Models Series</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Vision_Language">Back to Series Index</a></p>
+</footer>
+<script>
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+</body>
+</html>
